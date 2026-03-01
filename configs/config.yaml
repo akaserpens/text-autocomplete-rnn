@@ -1,0 +1,19 @@
+dataset:
+  source: https://code.s3.yandex.net/deep-learning/tweets.txt
+  dir: data/
+  original_filename: tweets.txt
+  max_examples: 10
+
+train:
+  batch_size: 3
+  max_epoch: 30
+
+model:
+  hidden_dim: 128
+  dir: models/
+
+clearml:
+  api_host: http://84.252.143.127:8008
+  web_host: http://84.252.143.127:8080/
+  files_host: http://84.252.143.127:8081
+

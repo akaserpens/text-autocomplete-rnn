@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 
 class NextTokenLSTMPredictor(nn.Module):
     def __init__(self, vocab_size: int, hidden_dim: int, bos_token_id: int, eos_token_id: int):
@@ -9,7 +11,7 @@ class NextTokenLSTMPredictor(nn.Module):
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
-        self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True, num_layers=2)
+        self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True)
         self.fc = nn.Linear(hidden_dim, vocab_size)
 
 
@@ -24,9 +26,9 @@ class NextTokenLSTMPredictor(nn.Module):
 
         return linear_out
     
-    def generate(self, input_ids, max_len):
+    def generate(self, input_ids, max_length):
         result = []
-        for _ in range(max_len):
+        for _ in range(max_length):
             output = self(input_ids.unsqueeze(0))
             predicted = output.squeeze().argmax()
             input_ids = torch.cat((input_ids, predicted.unsqueeze(0)), dim=0)
@@ -51,3 +53,19 @@ def lstm_train(
     loss.backward()
     optimizer.step()
     return loss.item()
+
+def lstm_train_epoch(
+        data_loader: DataLoader,
+        model: nn.Module,
+        criterion: nn.Module,
+        optimizer: Optimizer,
+        device: str = 'cpu'
+    ) -> float:
+
+    total_epoch_loss = 0
+    for batch in tqdm(data_loader):
+        heads = batch['heads'].to(device)
+        tails = batch['tails'].to(device)
+        loss = lstm_train(heads, tails[:, 1], model, criterion, optimizer)
+        total_epoch_loss += loss
+    return total_epoch_loss / len(data_loader)

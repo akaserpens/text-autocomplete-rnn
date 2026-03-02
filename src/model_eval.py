@@ -5,14 +5,14 @@ import evaluate
 from tqdm import tqdm
 from typing import Any
 
-def evaluate_model(model: nn.Module, val_data_loader: DataLoader, tokenizer: Any, device: str = 'cpu') -> tuple[float, float]:
+def evaluate_model(model: nn.Module, val_data_loader: DataLoader, tokenizer: Any, max_length: int, device: str = 'cpu') -> tuple[float, float]:
     all_preds = []
     all_refs = []
     model.eval()
     with torch.no_grad():
         for batch in tqdm(val_data_loader):
-            generated = [model.generate(line, max_len=100) for line in batch['heads']]
-            generated = [tokenizer.decode(line.to(device), skip_special_tokens=True) for line in generated]
+            generated = [model.generate(line.to(device), max_length=max_length) for line in batch['heads']]
+            generated = [tokenizer.decode(line, skip_special_tokens=True) for line in generated]
             all_preds += generated
             reference = [tokenizer.decode(line, skip_special_tokens=True) for line in batch['tails']]
             all_refs += reference

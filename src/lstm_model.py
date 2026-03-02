@@ -17,7 +17,7 @@ class NextTokenLSTMPredictor(nn.Module):
         lengths = (x != 0).sum(axis=1)
 
         emb = self.embedding(x)
-        packed = pack_padded_sequence(emb, lengths, batch_first=True, enforce_sorted=False)
+        packed = pack_padded_sequence(emb, lengths.cpu(), batch_first=True, enforce_sorted=False)
         _, (last_hidden_state, _) = self.rnn(packed)
         
         linear_out = self.fc(last_hidden_state[-1])

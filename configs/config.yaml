@@ -13,6 +13,7 @@ model:
   dir: models/
 
 clearml:
+  enabled: 1
   api_host: http://84.252.143.127:8008
   web_host: http://84.252.143.127:8080/
   files_host: http://84.252.143.127:8081

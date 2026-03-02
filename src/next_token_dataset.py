@@ -1,13 +1,14 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from tqdm.auto import tqdm
 
 class NextTokenDataset(Dataset):
     def __init__(self, texts, tokenizer, bos_token_id, eos_token_id):
         self.samples = []
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
-        for line in texts:
+        for line in tqdm(texts):
             token_ids = tokenizer(line, add_special_tokens=False)['input_ids']
             if len(token_ids) < 2:
                 continue

@@ -9,12 +9,15 @@ from tqdm.auto import tqdm
 
 class NextTokenSeq2SeqPredictor(nn.Module):
     def __init__(self, vocab_size: int, hidden_dim: int, bos_token_id: int, eos_token_id: int):
+        r"""
+        Encoder-Decoder for short text completion
+        """
         super().__init__()
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
-        self.encoder = nn.LSTM(hidden_dim, hidden_dim, batch_first=True)
-        self.decoder = nn.LSTM(hidden_dim, hidden_dim, batch_first=True)
+        self.encoder = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
+        self.decoder = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.decoder_fc = nn.Linear(hidden_dim, vocab_size)
 
     def _init_weights(self):
@@ -26,30 +29,33 @@ class NextTokenSeq2SeqPredictor(nn.Module):
             if 'weight' in name:
                 nn.init.orthogonal_(param)
 
-    def forward(self, input_ids, max_length, target_ids=None):
+    def forward(self, input_ids: torch.Tensor, max_new_tokens: int, target_ids: torch.Tensor | None = None) -> torch.Tensor:
         encoder_state = self._encode(input_ids)
-        decoder_output = self._decode(input_ids.size(0), encoder_state, max_length=max_length, device=input_ids.device, target_ids=target_ids)
+        decoder_output = self._decode(input_ids.size(0), encoder_state, max_new_tokens=max_new_tokens, device=input_ids.device, target_ids=target_ids)
         return decoder_output
     
-    def generate(self, input_ids, max_length):
-        output = self(input_ids.unsqueeze(0), max_length)
-        predicted = output.squeeze().argmax(dim=1)
+    def generate(self, input_ids: torch.Tensor, max_new_tokens: int) -> torch.Tensor:
+        r"""
+        Generates ``max_new_tokens`` tokens based on ``input_ids``
+        """
+        output = self(input_ids, max_new_tokens)
+        predicted = output.argmax(dim=1)
 
         return predicted
 
-    def _encode(self, input_ids):
+    def _encode(self, input_ids: torch.Tensor) -> torch.Tensor:
         lengths = (input_ids != 0).sum(axis=1).cpu()
         embedded = self.embedding(input_ids)
         packed = pack_padded_sequence(embedded, lengths, batch_first=True, enforce_sorted=False)
         _, hidden = self.encoder(packed)
         return hidden
     
-    def _decode(self, batch_size, encoder_hidden, max_length, device, target_ids=None):
+    def _decode(self, batch_size: int, encoder_hidden: torch.Tensor, max_new_tokens: int, device: str, target_ids: torch.Tensor | None = None):
         decoder_input = torch.empty(batch_size, 1, dtype=torch.long, device=device).fill_(self.bos_token_id)
         decoder_hidden = encoder_hidden
         all_outputs = []
 
-        for i in range(max_length):
+        for i in range(max_new_tokens):
             decoder_output, decoder_hidden  = self._decode_step(decoder_input, decoder_hidden)
             all_outputs.append(decoder_output)
 
@@ -64,7 +70,7 @@ class NextTokenSeq2SeqPredictor(nn.Module):
         decoder_outputs = torch.cat(all_outputs, dim=1)
         return decoder_outputs
 
-    def _decode_step(self, input_ids, hidden):
+    def _decode_step(self, input_ids: torch.Tensor, hidden: torch.Tensor) -> torch.Tensor:
         embedded = self.embedding(input_ids)
         output, hidden = self.decoder(embedded)
         linear_output = self.decoder_fc(output)
@@ -78,18 +84,18 @@ def seq2seq_train(
         model: nn.Module,
         criterion: nn.Module,
         optimizer: Optimizer,
-        max_length: int
+        max_new_tokens: int
     ) -> float:
 
     model.train()
     optimizer.zero_grad()
     
-    if y_true.size(1) < max_length:
-        delta = max_length - y_true.size(1)
+    if y_true.size(1) < max_new_tokens:
+        delta = max_new_tokens - y_true.size(1)
         paddings = torch.zeros((y_true.size(0), delta), dtype=torch.long)
         y_true = torch.cat((y_true, paddings), dim=1).to(y_true.device)
 
-    output = model(input_ids, max_length=max_length, target_ids=y_true)
+    output = model(input_ids, max_new_tokens=max_new_tokens, target_ids=y_true)
     
     loss = criterion(
         output.view(-1, output.size(-1)),
@@ -104,7 +110,7 @@ def seq2seq_train_epoch(
         model: nn.Module,
         criterion: nn.Module,
         optimizer: Optimizer,
-        max_length: int,
+        max_new_tokens: int,
         device: str = 'cpu'
     ) -> float:
 
@@ -112,6 +118,6 @@ def seq2seq_train_epoch(
     for batch in tqdm(data_loader):
         heads = batch['heads'].to(device)
         tails = batch['tails'].to(device)
-        loss = seq2seq_train(heads, tails, model, criterion, optimizer, max_length=max_length)
+        loss = seq2seq_train(heads, tails, model, criterion, optimizer, max_new_tokens=max_new_tokens)
         total_epoch_loss += loss
     return total_epoch_loss / len(data_loader)

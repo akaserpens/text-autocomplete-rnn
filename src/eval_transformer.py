@@ -5,9 +5,7 @@ from typing import Any
 from transformers import pipeline
 
 
-def evaluate_transformer(model_name: str, data_loader: DataLoader, tokenizer: Any, max_length: int, device: str = 'cpu') -> tuple[float, float]:
-    # generator_device = 0 if device == 'cuda' else -1
-    generator_device = -1
+def evaluate_transformer(model_name: str, data_loader: DataLoader, tokenizer: Any, max_length: int) -> tuple[float, float]:
     generator = pipeline('text-generation', model=model_name)
 
     all_preds = []

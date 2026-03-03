@@ -6,19 +6,19 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 class NextTokenLSTMPredictor(nn.Module):
-    def __init__(self, vocab_size: int, hidden_dim: int, bos_token_id: int, eos_token_id: int):
+    r"""
+    Use LSTM to predict next token in sequence.
+    """
+    def __init__(self, vocab_size: int, hidden_dim: int):
         super().__init__()
-        self.bos_token_id = bos_token_id
-        self.eos_token_id = eos_token_id
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True)
         self.fc = nn.Linear(hidden_dim, vocab_size)
 
+    def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
+        lengths = (input_ids != 0).sum(axis=1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        lengths = (x != 0).sum(axis=1)
-
-        emb = self.embedding(x)
+        emb = self.embedding(input_ids)
         packed = pack_padded_sequence(emb, lengths.cpu(), batch_first=True, enforce_sorted=False)
         _, (last_hidden_state, _) = self.rnn(packed)
         
@@ -26,17 +26,19 @@ class NextTokenLSTMPredictor(nn.Module):
 
         return linear_out
     
-    def generate(self, input_ids, max_length):
+    def generate(self, input_ids: torch.Tensor, max_new_tokens: int) -> torch.Tensor:
+        r"""
+        Recursively predicts next token in sequence until ``max_new_tokens`` is predicted
+        """
         result = []
-        for _ in range(max_length):
-            output = self(input_ids.unsqueeze(0))
-            predicted = output.squeeze().argmax()
-            input_ids = torch.cat((input_ids, predicted.unsqueeze(0)), dim=0)
-            result.append(predicted)
-            if (predicted == self.eos_token_id):
-                break
 
-        return result
+        for _ in range(max_new_tokens):
+            output = self(input_ids)
+            predicted = output.argmax(dim=1).view(-1, 1)
+            input_ids = torch.cat((input_ids, predicted), dim=1).to(input_ids.device)
+            result.append(predicted)
+
+        return torch.cat(result, dim=1)
     
 def lstm_train(
         input_ids: torch.Tensor,
@@ -66,6 +68,7 @@ def lstm_train_epoch(
     for batch in tqdm(data_loader):
         heads = batch['heads'].to(device)
         tails = batch['tails'].to(device)
+        # модель предсказывает следующий токен, поэтому в качестве таргета берем только первый токен из датасета (пропускаем BOS)
         loss = lstm_train(heads, tails[:, 1], model, criterion, optimizer)
         total_epoch_loss += loss
     return total_epoch_loss / len(data_loader)

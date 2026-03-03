@@ -16,6 +16,9 @@ def init_clearml(config):
     )
 
 class ClearMLTask:
+    r"""
+    ClearML task context manager
+    """
     def __init__(self, project_name: str, task_name: str, task_config: dict):
         self.task_config: dict = task_config
         self.project_name: str = project_name

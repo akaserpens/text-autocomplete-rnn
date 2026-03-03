@@ -8,7 +8,7 @@ def clear_text(input: str) -> str:
     result = re.sub(r"\s+", " ", result)  # убрать дублирующиеся пробелы
     return result.strip()
 
-def store_data(data: Iterable[LiteralString], filename: str):
+def store_data(data: Iterable[str], filename: str):
     with open(filename, 'w') as file:
         file.write('\n'.join(data))
 

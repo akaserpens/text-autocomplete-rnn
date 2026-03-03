@@ -39,36 +39,6 @@ class NextTokenLSTMPredictor(nn.Module):
             result.append(predicted)
 
         return torch.cat(result, dim=1)
-    
-def lstm_train(
-        input_ids: torch.Tensor,
-        y_true: torch.Tensor,
-        model: nn.Module,
-        criterion: nn.Module,
-        optimizer: Optimizer
-    ) -> float:
+ 
 
-    model.train()
-    optimizer.zero_grad()
-    out = model(input_ids)
-    loss = criterion(out, y_true)
-    loss.backward()
-    optimizer.step()
-    return loss.item()
 
-def lstm_train_epoch(
-        data_loader: DataLoader,
-        model: nn.Module,
-        criterion: nn.Module,
-        optimizer: Optimizer,
-        device: str = 'cpu'
-    ) -> float:
-
-    total_epoch_loss = 0
-    for batch in tqdm(data_loader):
-        heads = batch['heads'].to(device)
-        tails = batch['tails'].to(device)
-        # модель предсказывает следующий токен, поэтому в качестве таргета берем только первый токен из датасета (пропускаем BOS)
-        loss = lstm_train(heads, tails[:, 1], model, criterion, optimizer)
-        total_epoch_loss += loss
-    return total_epoch_loss / len(data_loader)

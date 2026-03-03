@@ -1,5 +1,6 @@
-from clearml import Task
 import os
+
+from clearml import Task
 
 CLEARML_ENABLED = False
 

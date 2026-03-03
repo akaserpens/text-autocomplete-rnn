@@ -1,5 +1,6 @@
-from typing import Iterable, LiteralString, List
 import re
+from typing import Iterable, List
+
 
 def clear_text(input: str) -> str:
     result = re.sub(r'@[\S]*', '', input.lower()) # убрать упоминания

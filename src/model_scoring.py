@@ -1,10 +1,12 @@
+from typing import Any
+
+import evaluate
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import evaluate
 from tqdm import tqdm
-from typing import Any
 from transformers import pipeline
+
 
 def score_model(model: nn.Module, data_loader: DataLoader, tokenizer: Any, max_new_tokens: int, device: str = 'cpu') -> tuple[float, float]:
     all_preds = []

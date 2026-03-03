@@ -1,7 +1,8 @@
-from torch.utils.data import DataLoader
-import evaluate
-from tqdm import tqdm
 from typing import Any
+
+import evaluate
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import pipeline
 
 

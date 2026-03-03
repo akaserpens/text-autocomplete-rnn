@@ -1,8 +1,10 @@
+from typing import Any, Iterable, Iterator, List, Literal
+
 import torch
-from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
-from typing import Iterable, Iterator, Literal, List, Any
+
 
 class NextTokenDataset(Dataset):
     r"""Dataset class

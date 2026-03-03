@@ -1,9 +1,11 @@
+from typing import Any
+
 import torch
 import torch.nn as nn
-from typing import Any
-from torch.utils.data import DataLoader
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+
 
 class ModelTrainer:
     def train(
@@ -12,8 +14,7 @@ class ModelTrainer:
             y_true: torch.Tensor,
             model: nn.Module,
             criterion: nn.Module,
-            optimizer: Optimizer,
-            **kwargs
+            optimizer: Optimizer
         ) :
         pass
 
@@ -22,8 +23,7 @@ class ModelTrainer:
             input_ids: torch.Tensor,
             y_true: torch.Tensor,
             model: nn.Module,
-            criterion: nn.Module,
-            **kwargs
+            criterion: nn.Module
         ) :
         pass
 

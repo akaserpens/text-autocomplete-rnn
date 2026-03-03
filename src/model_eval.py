@@ -13,7 +13,7 @@ def evaluate_model(model: nn.Module, data_loader: DataLoader, tokenizer: Any, ma
         for batch in tqdm(data_loader):
             reference = tokenizer.batch_decode(batch['tails'], skip_special_tokens=True)
 
-            generated_tokens = model.generate(batch['heads'], max_new_tokens=max_new_tokens)
+            generated_tokens = model.generate(batch['heads'].to(device), max_new_tokens=max_new_tokens)
             generated = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
             
             all_preds += generated

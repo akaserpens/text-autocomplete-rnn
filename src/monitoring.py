@@ -4,7 +4,9 @@ import os
 CLEARML_ENABLED = False
 
 def init_clearml(config):
+    global CLEARML_ENABLED
     CLEARML_ENABLED = bool(config['enabled'])
+    print('ClearML enabled' if CLEARML_ENABLED else 'ClearML disabled')
     if not CLEARML_ENABLED:
         return
     Task.set_credentials(

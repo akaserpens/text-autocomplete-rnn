@@ -8,13 +8,12 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 class NextTokenSeq2SeqPredictor(nn.Module):
-    def __init__(self, vocab_size: int, hidden_dim: int, bos_token_id: int, eos_token_id: int):
+    def __init__(self, vocab_size: int, hidden_dim: int, bos_token_id: int):
         r"""
         Encoder-Decoder for short text completion
         """
         super().__init__()
         self.bos_token_id = bos_token_id
-        self.eos_token_id = eos_token_id
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.encoder = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.decoder = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
@@ -89,11 +88,6 @@ def seq2seq_train(
 
     model.train()
     optimizer.zero_grad()
-    
-    if y_true.size(1) < max_new_tokens:
-        delta = max_new_tokens - y_true.size(1)
-        paddings = torch.zeros((y_true.size(0), delta), dtype=torch.long)
-        y_true = torch.cat((y_true, paddings), dim=1).to(y_true.device)
 
     output = model(input_ids, max_new_tokens=max_new_tokens, target_ids=y_true)
     

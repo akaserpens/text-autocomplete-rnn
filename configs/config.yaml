@@ -3,10 +3,11 @@ dataset:
   dir: data/
   original_filename: tweets.txt
   max_examples: 1000
+  train_set_split_num: 3
 
 train:
   batch_size: 64
-  max_epoch: 20
+  max_epoch: 10
 
 model:
   hidden_dim: 128

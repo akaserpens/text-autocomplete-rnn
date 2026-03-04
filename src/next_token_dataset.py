@@ -1,5 +1,6 @@
 from typing import Any, Iterable, Iterator, List, Literal
 
+import numpy as np
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
@@ -17,67 +18,39 @@ class NextTokenDataset(Dataset):
     Args:
         texts: actual texts
         tokenizer: used to convert strings to tokens
-        bos_token_id: ``begin of sentence`` token id
-        eos_token_id: ``end of sequence`` token id
-        pad_token_id: ``padding`` token id
-        max_input_length (int, optional): maximum input (prompt) length. Default is 50
-        max_output_length (int, optional): maximum output (expected result) length. Default is 50
-        split_mode (str, optional): how to generate samples from string, ``all`` | ``quarter``
-            - ``all``: create all possible pairs of prompt and target from each string
-            - ``quarter``: 3/4 of string as prompt, 1/4 as target
-            Default is ``all``
+        split_num (int, optional): number of pairs to generate from each text. Default is 3
+            If ``split_num`` is set to 1, text will be split as 0.75/0.25.
+            Otherwise, text will be split at ``split_num`` equaly distributed points.
+        max_output_length (int, optional): maximum target length. Default is 5
     """
     def __init__(
             self,
             texts: Iterable[str],
             tokenizer: Any,
-            bos_token_id: int,
-            eos_token_id: int,
-            pad_token_id: int,
-            max_input_length: int = 50,
-            max_output_length: int = 50,
-            split_mode: Literal['all', 'quarter'] = 'all'
+            split_num: int = 3,
+            max_output_length: int = 5
         ):
 
         self.samples = []
 
-        # из максимальной длины вычитаем служебные символы (начало и конец предложения)
-        max_input_length -= 2
-        max_output_length -= 2
-
         for line in tqdm(texts):
-            token_ids = tokenizer(line, add_special_tokens=False)['input_ids']
+            token_ids = tokenizer(line, add_special_tokens=True)['input_ids']
 
-            if len(token_ids) < 2:
+            if len(token_ids) < 4:
                 continue
 
-            if split_mode == 'all':
-                split_fn = self._split_all
-            elif split_mode == 'quarter':
-                split_fn = self._split_quarter
+            if split_num == 1:
+                head_len = int(len(token_ids) * 0.75)
+                edges = [head_len]
             else:
-                raise ValueError(f'Invalid split_mode: {split_mode}')
+                # по краям будут добавлены токены начала и конца строки,
+                # которые мы не хотим оставлять в одиночестве. Поэтому по -2 с каждой стороны
+                edges = np.linspace(2, len(token_ids) - 2, split_num, dtype=int)
+                edges = np.unique(edges)
 
-            for head, tail in split_fn(token_ids, max_input_length, max_output_length):
-                output_padding = [pad_token_id] * (max_output_length - len(tail))
-                self.samples.append((
-                    [bos_token_id] + head + [eos_token_id],
-                    [bos_token_id] + tail + [eos_token_id] + output_padding,
-                ))
-
-    def _split_quarter(self, token_ids: List[int], max_input_length: int, max_output_length: int) -> Iterator[tuple[List[int], List[int]]]:
-        head_len = int(len(token_ids) * 0.75)
-        head_len = min(head_len, max_input_length)
-        head = token_ids[:head_len]
-        tail = token_ids[head_len:head_len + max_output_length]
-        yield (head, tail)
-
-    def _split_all(self, token_ids: List[int], max_input_length: int, max_output_length: int) -> Iterator[tuple[List[int], List[int]]]:
-        for i in range(1, len(token_ids) + 1):
-            start_pos = max(0, i - max_input_length)
-            head = token_ids[start_pos : i]
-            tail = token_ids[i : i + max_output_length]
-            yield (head, tail)
+            for edge in np.unique(edges):
+                head, tail = token_ids[:edge], token_ids[edge : edge + max_output_length]
+                self.samples.append((head, tail))
         
     def __len__(self):
         return len(self.samples)
@@ -93,13 +66,14 @@ def _pad_batch(batch):
     heads = [item['head'] for item in batch]
     tails = [item['tail'] for item in batch]
     padded_heads = pad_sequence(heads, batch_first=True)
+    padded_tails = pad_sequence(tails, batch_first=True)
 
     return {
         'heads': padded_heads,
-        'tails': torch.stack(tails, dim=0),
+        'tails': padded_tails,
     }
 
-def next_token_data_loader(dataset, batch_size, shuffle):
+def next_token_data_loader(dataset: NextTokenDataset, batch_size: int, shuffle: bool):
     r"""Creates DataLoader for NextTokenDataset. Pad all inputs to equal length. 
     """
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=_pad_batch)

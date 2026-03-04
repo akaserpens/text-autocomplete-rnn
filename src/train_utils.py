@@ -40,7 +40,6 @@ class LSTMTrainer(ModelTrainer):
             optimizer: Optimizer
         ) :
 
-        model.train()
         optimizer.zero_grad()
         out = model(input_ids)
         loss = self._calc_loss(criterion, out, y_true)
@@ -79,11 +78,11 @@ class Seq2SeqTrainer(ModelTrainer):
             optimizer: Optimizer
         ) :
 
-        model.train()
         optimizer.zero_grad()
-        out = model(input_ids, max_new_tokens=y_true.size(1), target_ids=y_true)
+        out = model(input_ids, max_new_tokens=y_true.size(1))
         loss = self._calc_loss(criterion, out, y_true)
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         return loss.item()
 

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import pipeline
+from transformers import Pipeline
 
 
 def score_model(model: nn.Module, data_loader: DataLoader, tokenizer: Any, max_new_tokens: int, device: str = 'cpu') -> tuple[float, float]:
@@ -25,9 +25,7 @@ def score_model(model: nn.Module, data_loader: DataLoader, tokenizer: Any, max_n
 
     return _calculate_score(predictions=all_preds, references=all_refs)
 
-def score_transformer(model_name: str, data_loader: DataLoader, tokenizer: Any, max_length: int) -> tuple[float, float]:
-    generator = pipeline('text-generation', model=model_name)
-
+def score_transformer(generator: Pipeline, data_loader: DataLoader, tokenizer: Any, max_length: int) -> tuple[float, float]:
     all_preds = []
     all_refs = []
 

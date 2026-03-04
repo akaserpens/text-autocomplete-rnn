@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
+# Веса
+# 1k примеров, 10 эпох Train Loss: 3.8511, Val Loss: 3.6774, rouge score: 0.07364740270802334
+# '_lstm_weights-20260303_172409-cpu-10.pth'
+
 
 class NextTokenLSTMPredictor(nn.Module):
     r"""
@@ -12,6 +16,12 @@ class NextTokenLSTMPredictor(nn.Module):
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True)
         self.fc = nn.Linear(hidden_dim, vocab_size)
+        self._init_weights()
+
+    def _init_weights(self):
+        for name, param in self.rnn.named_parameters():
+            if 'weight' in name:
+                nn.init.orthogonal_(param)
 
     def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
         lengths = (input_ids != 0).sum(axis=1)

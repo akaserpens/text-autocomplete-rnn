@@ -5,7 +5,7 @@ from typing import Iterable, List
 def clear_text(input: str) -> str:
     result = re.sub(r'@[\S]*', '', input.lower()) # убрать упоминания
     result = re.sub(r'https?:\/\/[\S]*', '', result) # убрать ссылки
-    result = re.sub(r"[^a-z0-9 ]+", " ", result)  # оставить только буквы и цифры
+    result = re.sub(r"[^a-z0-9 ']+", " ", result)  # оставить только буквы и цифры и апострофы
     result = re.sub(r"\s+", " ", result)  # убрать дублирующиеся пробелы
     return result.strip()
 

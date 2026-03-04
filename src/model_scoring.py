@@ -33,7 +33,7 @@ def score_transformer(generator: Pipeline, data_loader: DataLoader, tokenizer: A
         prompts = tokenizer.batch_decode(batch['heads'], skip_special_tokens=True)
         reference = tokenizer.batch_decode(batch['tails'], skip_special_tokens=True)
         
-        output = generator(prompts, max_new_tokens=max_length, pad_token_id=0)
+        output = generator(prompts, max_new_tokens=max_length, pad_token_id=0, batch_size=len(prompts))
         generated = [line[0]['generated_text'].strip() for line in output]
 
         all_preds += generated
